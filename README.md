@@ -1,36 +1,99 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Authentication with NextAuth.js using Google Provider
 
-## Getting Started
+This project uses [NextAuth.js](https://next-auth.js.org/) to handle authentication. NextAuth.js is a complete open-source authentication solution for Next.js applications. It supports various authentication providers, including Google, which we are using in this project.
 
-First, run the development server:
+## Setup
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+To get started with NextAuth.js using Google Provider, follow these steps:
+
+## 1. **Install NextAuth.js:**
+   ```bash
+   npm install next-auth
+   ```
+
+## 2. Create a Google OAuth 2.0 Client
+
+1. Go to the [Google Cloud Console](https://console.cloud.google.com/).
+2. Create a new project or select an existing project.
+3. Navigate to the "Credentials" page in the API & Services section.
+4. Click on "Create Credentials" and select "OAuth 2.0 Client IDs".
+5. Configure the OAuth consent screen with the necessary information.
+6. Add your authorized redirect URI. It should be in the format:
+   ```bash
+   http://localhost:3000/api/auth/callback/google
+7. After creating the OAuth 2.0 Client, you will get a Client ID and Client Secret.
+
+## 3. Configure NextAuth.js
+
+Create a `[...nextauth].js` file inside the `pages/api/auth` directory with the following configuration:
+
+```javascript
+import NextAuth from 'next-auth';
+import GoogleProvider from 'next-auth/providers/google';
+
+export default NextAuth({
+  providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+    }),
+  ],
+  // Optional: Configure session and callbacks as per your needs
+  session: {
+    jwt: true,
+  },
+  callbacks: {
+    async jwt(token, user) {
+      if (user) {
+        token.id = user.id;
+      }
+      return token;
+    },
+    async session(session, token) {
+      session.user.id = token.id;
+      return session;
+    },
+  },
+});
+ ```
+
+## 4. Set Environment Variables
+
+Ensure you have the environment variables set up in your `.env.local` file:
+
+```plaintext
+GOOGLE_CLIENT_ID=your-google-client-id
+GOOGLE_CLIENT_SECRET=your-google-client-secret
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## 5. Use the signIn and signOut Methods
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+NextAuth.js provides `signIn` and `signOut` methods to handle authentication in your components.
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
+```javascript
+import { signIn, signOut, useSession } from 'next-auth/react';
 
-## Learn More
+function AuthButton() {
+  const { data: session } = useSession();
 
-To learn more about Next.js, take a look at the following resources:
+  if (session) {
+    return (
+      <>
+        <p>Signed in as {session.user.email}</p>
+        <button onClick={() => signOut()}>Sign out</button>
+      </>
+    );
+  }
+  return <button onClick={() => signIn('google')}>Sign in with Google</button>;
+}
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+export default AuthButton;
+```
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
+## 6. Additional Resources
 
-## Deploy on Vercel
+- [NextAuth.js Documentation](https://next-auth.js.org/getting-started/introduction)
+- [Google Cloud Console](https://console.cloud.google.com/)
+- [Next.js Documentation](https://nextjs.org/docs)
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
